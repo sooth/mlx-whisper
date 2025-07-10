@@ -289,6 +289,15 @@ def transcribe(
                 segment_size = min(
                     N_FRAMES, content_frames - seek, seek_clip_end - seek
                 )
+                
+                # Performance optimization: Avoid exact N_FRAMES boundaries
+                # At exactly N_FRAMES, quantized models exhibit slower performance
+                # due to memory alignment or kernel optimization issues in MLX.
+                # Reducing by 1 frame forces padding which maintains fast performance
+                # without affecting transcription accuracy.
+                if segment_size == N_FRAMES:
+                    segment_size = N_FRAMES - 1
+                
                 mel_segment = mel[seek : seek + segment_size]
                 segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
                 mel_segment = pad_or_trim(mel_segment, N_FRAMES, axis=-2).astype(dtype)
